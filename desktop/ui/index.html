@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>BsonLite Console</title>
+  <link rel="icon" href="icon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand"><img src="icon.svg" alt="" width="30" height="30"><strong>BsonLite</strong><span class="brand-tag">CONSOLE</span></div>
+    <nav aria-label="Workspace"><button id="workspaceLink" class="nav-active">Workspace</button><button id="optionsLink">Connection</button><button id="helpLink">Help & shortcuts</button></nav>
+    <span class="version">v0.2.0 <span class="version-dot"></span> Desktop</span>
+  </header>
+  <section class="connection-bar" aria-label="Connection">
+    <label class="local-picker"><span data-icon="database"></span><select id="localConnections" aria-label="Running BsonLite databases"><option value="">Looking for BsonLite apps…</option></select></label>
+    <div class="url-wrap"><span class="url-icon" data-icon="link"></span><input id="uri" type="password" autocomplete="off" spellcheck="false" aria-label="Connection URL" placeholder="Paste your connection URL…"><button id="reveal" class="icon-button" aria-label="Show connection URL" title="Show or hide URL" data-icon="eye"></button><kbd>Ctrl K</kbd></div>
+    <button id="options" class="button secondary"><span data-icon="sliders"></span>Options</button>
+    <button id="connect" class="button primary"><span data-icon="plug"></span><span id="connectLabel">Connect</span></button>
+    <button id="disconnect" class="button secondary" hidden>Disconnect</button>
+  </section>
+  <div class="app-body">
+    <aside class="sidebar">
+      <div class="sidebar-heading"><span>CONNECTIONS</span><button id="saveConnection" class="icon-button" title="Save current connection" aria-label="Save connection" data-icon="plus"></button></div>
+      <div id="savedConnections" class="saved-connections"><p class="muted small sidebar-note">Saved connections appear here.</p></div>
+      <div class="sidebar-heading explorer-heading"><span>EXPLORER</span><button id="refresh" class="icon-button" title="Refresh databases" aria-label="Refresh databases" data-icon="refresh"></button></div>
+      <label class="sidebar-search"><span data-icon="search"></span><input id="collectionSearch" placeholder="Find a collection" aria-label="Find a collection"></label>
+      <div id="tree" class="tree"><div class="tree-empty"><span data-icon="database"></span><p>Nothing connected yet</p><span>Your databases will appear here.</span></div></div>
+      <div class="sidebar-footer"><span class="connection-led" id="connectionLed"></span><div><strong id="connectionState">No active connection</strong><span id="connectionKind">Ready when you are</span></div></div>
+    </aside>
+    <main class="main">
+      <div class="workspace-header"><div class="breadcrumbs"><span data-icon="grid"></span><span>Workspace</span><span class="crumb-divider">/</span><strong id="breadcrumb">Overview</strong></div><button id="consoleToggle" class="text-button"><span data-icon="terminal"></span>Query console<span class="tiny-key">⌘ /</span></button></div>
+      <section id="welcome" class="welcome">
+        <div class="welcome-graphic"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><img src="icon.svg" width="72" height="72" alt="BsonLite"><span class="graphic-badge" data-icon="database"></span></div>
+        <div class="eyebrow">YOUR DATABASE WORKSPACE</div>
+        <h1 id="welcomeTitle">Your database. One click away.</h1>
+        <p id="welcomeDescription">Start your BsonLite app as usual.<br>Its database appears here automatically. Then click Connect.</p>
+        <button id="welcomeConnect" class="button primary">Connect a database<span data-icon="arrow"></span></button>
+        <div class="welcome-steps"><div><span class="step-number">01</span><strong>Run your app</strong><p>Use the updated BsonLite SDK.<br>Keep your usual connection code.</p></div><div><span class="step-number">02</span><strong>Click Connect</strong><p>Your running database and URL<br>are selected automatically.</p></div><div><span class="step-number">03</span><strong>Explore your data</strong><p>Browse documents visually<br>or use the query console.</p></div></div>
+        <button id="connectionGuide" class="text-button guide-link"><span data-icon="book"></span>First-time SDK update & connection help<span data-icon="arrow"></span></button>
+      </section>
+      <section id="browser" class="browser" hidden>
+        <div class="collection-header"><div><div class="eyebrow" id="databaseLabel">DATABASE</div><h1 id="collectionTitle">Choose a collection</h1></div><div class="collection-actions"><span id="readOnlyBadge" class="badge">READ ONLY</span><button id="createCollection" class="button secondary"><span data-icon="plus"></span>Collection</button><button id="insert" class="button primary"><span data-icon="plus"></span>Insert document</button></div></div>
+        <div class="data-tabs"><button class="tab active" id="documentsTab"><span data-icon="documents"></span>Documents<span id="documentCount" class="tab-count">0</span></button><button class="tab" id="indexesTab"><span data-icon="index"></span>Indexes</button><div class="tab-spacer"></div><button id="export" class="text-button"><span data-icon="download"></span>Export shown results</button></div>
+        <div class="filter-row" id="filterRow"><label><span class="filter-label">FILTER</span><input id="filter" value="{}" spellcheck="false" aria-label="Document filter"></label><label class="sort-field"><span class="filter-label">SORT</span><input id="sort" value="{_id: 1}" spellcheck="false" aria-label="Document sort"></label><button id="find" class="button secondary"><span data-icon="search"></span>Find</button><div class="view-switch"><button id="tableView" class="selected" title="Table view" aria-label="Table view" data-icon="table"></button><button id="jsonView" title="JSON view" aria-label="JSON view" data-icon="code"></button></div></div>
+        <div id="dataArea" class="data-area"><div class="data-placeholder">Choose a collection from the explorer.</div></div>
+        <div class="data-footer"><span id="resultSummary">No documents loaded</span><div class="pagination"><button id="previous" class="icon-button" title="Previous page" aria-label="Previous page" data-icon="chevronLeft"></button><span id="pageLabel">Page 1</span><button id="next" class="icon-button" title="Next page" aria-label="Next page" data-icon="chevronRight"></button></div></div>
+      </section>
+      <section id="console" class="console">
+        <div class="console-header"><div><span class="terminal-mark" data-icon="terminal"></span><strong>Query console</strong><span class="console-hint">One expression. Endless possibilities.</span></div><div><button id="history" class="text-button" title="Previous query"><span data-icon="history"></span>History</button><button id="clearConsole" class="text-button">Clear</button><button id="run" class="button primary small-button"><span data-icon="play"></span>Run<kbd>Ctrl ↵</kbd></button></div></div>
+        <div class="console-body"><div class="editor-pane"><div class="editor-caption"><span class="mint-dot"></span><span id="editorDatabase">NOT CONNECTED</span><span>DATABASE EXPRESSION</span></div><div class="editor-wrap"><span class="line-number" aria-hidden="true">1</span><textarea id="query" spellcheck="false" aria-label="Database query" placeholder="db.users.find({}).limit(50)"></textarea></div><div class="editor-note">ObjectId · ISODate · Aggregation · CRUD</div></div><div class="output-pane"><div class="output-caption"><span>OUTPUT</span><span id="queryTiming">Waiting for a query</span></div><pre id="output">// Connect to a database, then run a query.
+// Tip: type help for examples.</pre></div></div>
+      </section>
+    </main>
+  </div>
+  <footer class="statusbar"><span id="status"><span class="status-idle"></span>Ready to connect</span><span>Local workspace<span class="status-separator">·</span><span id="modeStatus">Read-only by default</span><span class="status-separator">·</span>UTF-8</span></footer>
+  <div id="toast" role="status" hidden></div>
+  <dialog id="optionsDialog"><form method="dialog"><div class="dialog-title"><div><span class="eyebrow">CONNECTION</span><h2>Connection options</h2></div><button class="icon-button close-dialog" aria-label="Close" data-icon="close"></button></div><p class="dialog-intro">A connection URL is all you need for a BsonLite app link. Direct connections can also use TLS files.</p><label class="field">Default database <span>Optional for direct URIs</span><input id="defaultDatabase" placeholder="Taken from your URL"></label><label class="field">CA certificate <span>Optional · direct URI</span><div class="file-field"><input id="caFile" placeholder="Select a .pem or .crt file" readonly><button type="button" id="pickCA" class="button secondary">Browse</button><button type="button" id="clearCA" class="icon-button" aria-label="Clear CA certificate" data-icon="close"></button></div></label><label class="field">Client certificate + private key <span>Optional · combined PEM</span><div class="file-field"><input id="certFile" placeholder="Select your client .pem file" readonly><button type="button" id="pickCert" class="button secondary">Browse</button><button type="button" id="clearCert" class="icon-button" aria-label="Clear client certificate" data-icon="close"></button></div></label><label class="check-field"><input id="readOnly" type="checkbox" checked><span><strong>Read-only connection</strong><small>Turn off to insert, edit, delete and manage indexes. The server must also permit writes.</small></span></label><p class="muted small">Options apply when you connect. TLS certificate verification stays enabled.</p><div class="dialog-actions"><button class="button secondary">Cancel</button><button id="applyOptions" type="button" class="button primary">Apply options</button></div></form></dialog>
+  <dialog id="documentDialog" class="document-dialog"><form method="dialog"><div class="dialog-title"><div><span class="eyebrow">DOCUMENT</span><h2 id="documentDialogTitle">Document details</h2></div><button class="icon-button close-dialog" aria-label="Close" data-icon="close"></button></div><p id="documentHint" class="dialog-intro">Use Extended JSON to preserve ObjectIds and dates.</p><textarea id="documentEditor" class="document-editor" spellcheck="false" aria-label="Document Extended JSON"></textarea><div class="dialog-actions"><button id="deleteDocument" type="button" class="button danger">Delete document</button><span class="tab-spacer"></span><button class="button secondary">Close</button><button id="saveDocument" type="button" class="button primary">Save changes</button></div></form></dialog>
+  <dialog id="helpDialog" class="help-dialog"><form method="dialog"><div class="dialog-title"><div><span class="eyebrow">QUICK START</span><h2>Run your app. Click Connect.</h2></div><button class="icon-button close-dialog" aria-label="Close" data-icon="close"></button></div><p>Use the updated BsonLite SDK supplied with Console 0.2.0. Keep your existing app startup code: the SDK prepares a local connection automatically.</p><pre class="help-code">// Your existing application code stays the same.
+const BsonLite = require('./BsonLite.cjs');
+const database = await BsonLite.connect();</pre><p>For single-file SDK apps, replace the old <code>BsonLite.cjs</code> with the supplied updated file and restart your app. For npm projects, install the supplied <code>bsonlite-sdk-0.6.0-rc.3.tgz</code> once. See the included Bangla quick start.</p><p>Open Console. Your database appears in the dropdown above and its URL is filled in. Click <strong>Connect</strong>. With multiple apps, choose the database you want from the dropdown. No helper installation, project-folder selection or pasted token is required.</p><p>No database found? Start the updated SDK app, leave it running, and use the same Windows account. A closed database cannot be discovered. You can still paste a direct <code>mongodb://…</code>, <code>mongodb+srv://…</code>, or a previous <code>bsonlite://…</code> app link.</p><h3>Console examples</h3><pre class="help-code">show dbs
+show collections
+db.users.find({active: true}).limit(50)
+db.users.insertOne({name: "Atik"})
+db.users.updateOne({name: "Atik"}, {$set: {active: true}})</pre><p class="muted small">Connections start read-only. Enable writes in Options when needed. Ctrl K: connection URL · Ctrl Enter: run query · Escape: close dialog. Database permissions and engine capabilities apply.</p><div class="dialog-actions"><button class="button primary">Got it</button></div></form></dialog>
+  <dialog id="promptDialog"><form id="promptForm"><div class="dialog-title"><h2 id="promptTitle">Name</h2></div><label class="field" id="promptLabel"><span id="promptText">Enter a name</span><input id="promptInput" required maxlength="120" autocomplete="off"></label><div class="dialog-actions"><button type="button" id="promptCancel" class="button secondary">Cancel</button><button type="submit" class="button primary">Continue</button></div></form></dialog>
+  <dialog id="confirmDialog"><form id="confirmForm"><div class="dialog-title"><h2 id="confirmTitle">Delete document?</h2></div><p id="confirmText" class="dialog-intro">This will permanently delete the selected document.</p><div class="dialog-actions"><button id="confirmCancel" type="button" class="button secondary">Cancel</button><button type="submit" class="button danger">Delete document</button></div></form></dialog>
+  <script src="renderer.js"></script>
+</body>
+</html>

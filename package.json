@@ -1,0 +1,78 @@
+{
+  "name": "bsonlite-cli",
+  "version": "0.2.0",
+  "description": "BsonLite desktop database browser and terminal console with connection URLs",
+  "author": "Md. Atikur Rahman",
+  "license": "MIT",
+  "homepage": "https://bsonlite.com/console.html",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MohammadAtikurRahman/BsonLite-Console.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MohammadAtikurRahman/BsonLite-Console/issues"
+  },
+  "main": "desktop/main.cjs",
+  "exports": {
+    "./bridge": "./src/bridge.cjs"
+  },
+  "bin": {
+    "bsonlite": "bin/bsonlite.cjs"
+  },
+  "scripts": {
+    "start": "electron .",
+    "cli": "node bin/bsonlite.cjs",
+    "test": "node --test test/*.test.cjs",
+    "test:ui": "node scripts/test-ui.cjs",
+    "build:win": "electron-builder --win portable --x64",
+    "build:dir": "electron-builder --dir",
+    "build:sdk": "node scripts/build-sdk.cjs"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "dependencies": {
+    "acorn": "8.19.0",
+    "mongodb": "6.16.0"
+  },
+  "devDependencies": {
+    "electron": "44.9.1",
+    "electron-builder": "26.15.3",
+    "esbuild": "0.25.5"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "desktop/",
+    "examples/",
+    "README.md",
+    "START_HERE_BN.md",
+    "LICENSE"
+  ],
+  "build": {
+    "appId": "com.bsonlite.console",
+    "productName": "BsonLite Console",
+    "asar": true,
+    "compression": "normal",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "desktop/**/*",
+      "src/**/*",
+      "package.json",
+      "LICENSE"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "signExecutable": false,
+      "icon": "desktop/ui/icon.ico",
+      "artifactName": "BsonLite-Console-${version}-Windows-x64.${ext}"
+    },
+    "portable": {
+      "requestExecutionLevel": "user"
+    }
+  }
+}

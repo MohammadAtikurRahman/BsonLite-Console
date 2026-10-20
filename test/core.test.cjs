@@ -1,0 +1,38 @@
+'use strict';
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const {once}=require('node:events');
+const {spawn}=require('node:child_process');
+const {ObjectId,BSON}=require('mongodb');
+const {parseQuery,validatePlan,json,fromJSON}=require('../src/query.cjs');
+const {Connection,bridgeURL,safeError}=require('../src/connection.cjs');
+const {startBridge}=require('../src/bridge.cjs');
+const {fakeDatabase}=require('./fake-database.cjs');
+const plan=s=>parseQuery(s,'demo');
+test('query expressions preserve BSON types, filters and cursor modifiers',()=>{const p=plan('db.getCollection("user-events").find({_id:ObjectId("507f1f77bcf86cd799439011"),at:ISODate("2026-10-20"),n:NumberLong("9223372036854775807"),score:{$gte:10},name:/atik/i}).sort({at:-1}).skip(25).limit(25).toArray()');validatePlan(p);assert.equal(p.collection,'user-events');assert(p.args[0]._id instanceof ObjectId);assert.equal(p.args[0].n.toString(),'9223372036854775807');assert(p.args[0].at instanceof Date);assert(p.args[0].name instanceof RegExp);assert.equal(p.modifiers.length,4);const copied=fromJSON(json(p));assert.equal(copied.modifiers[1].args[0],25);assert(copied.args[0]._id instanceof ObjectId);assert.equal(copied.args[0].n.toString(),'9223372036854775807');});
+test('reject arbitrary JavaScript and prototype escape attempts',()=>{for(const source of ['require("node:fs").readFileSync("x")','process.exit()','db.users.find((()=>process.exit())())','db.users.constructor("return process")()','db.users.find({__proto__:{x:1}})','db.users.find({get name(){return 1}})','db.users.find({x:undefined})','db.users.find({}); db.users.drop()'])assert.throws(()=>{const p=plan(source);validatePlan(p);},undefined,source);assert.equal({}.x,undefined);});
+test('read-only policy blocks every supported write and nested writing aggregation',()=>{for(const source of ['db.users.insertOne({x:1})','db.users.deleteMany({})','db.users.updateMany({},{$set:{x:1}})','db.users.createIndex({email:1})','db.users.drop()','db.createCollection("new")','db.users.aggregate([{$out:"copy"}])','db.users.aggregate([{$facet:{nested:[{$merge:"copy"}]}}])']){assert.throws(()=>validatePlan(plan(source)),/Read-only/);validatePlan(plan(source),{readOnly:false});}assert.throws(()=>validatePlan(plan('db.users.find({$where:"true"})')),/JavaScript/);assert.throws(()=>validatePlan(plan('db.runCommand({dropDatabase:1})')),/read database commands/);});
+test('result and query limits are enforced before driver access',()=>{assert.throws(()=>validatePlan(plan('db.users.find({}).limit(1001)')),/Limit/);assert.throws(()=>validatePlan(plan('db.users.find({}).skip(-1)')),/Limit/);assert.throws(()=>validatePlan(plan('db.users.find({}).unknown()')),/modifier/);assert.throws(()=>parseQuery('x'.repeat(1024*1024+1),'demo'),/1 MB/);});
+test('bridge URLs are loopback-only and error messages redact credentials',()=>{assert.throws(()=>bridgeURL('bsonlite://example.com:123/demo#'+'a'.repeat(64)),/exact local/);assert.throws(()=>bridgeURL('bsonlite://127.0.0.1:123/demo#bad'),/exact local/);assert.equal(safeError(new Error('Cannot connect mongodb://u:secret@localhost/demo')), 'Cannot connect [connection URL]');});
+test('live HTTP bridge supports browse, typed CRUD, collection creation, indexes and CLI',async t=>{
+  const db=fakeDatabase(),bridge=await startBridge(db,{allowWrites:true}),c=new Connection();t.after(async()=>{await c.disconnect();await bridge.close();});
+  const info=await c.connect({uri:bridge.url,readOnly:false});assert.equal(info.database,'demo');assert.equal(info.allowWrites,true);
+  assert.deepEqual((await c.run('show dbs')).value,[{name:'demo'}]);assert.equal((await c.run('show collections')).value.length,3);
+  const data=await c.run('db.users.find({}).limit(25)');assert.equal(data.value.length,25);assert(data.truncated);assert(data.value[0]._id instanceof ObjectId);
+  const inserted=await c.run('db.users.insertOne({name:"CLI test",n:NumberLong("9223372036854775807")})');const id=inserted.value.insertedId;assert(id instanceof ObjectId);
+  assert.equal((await c.run('db.users.findOne({_id:ObjectId("'+id.toHexString()+'")})')).value.n.toString(),'9223372036854775807');
+  assert.equal((await c.run('db.users.updateOne({_id:ObjectId("'+id.toHexString()+'")},{$set:{active:true}})')).value.modifiedCount,1);
+  assert.equal((await c.run('db.users.deleteOne({_id:ObjectId("'+id.toHexString()+'")})')).value.deletedCount,1);
+  await c.run('db.createCollection("events")');assert((await c.run('show collections')).value.some(x=>x.name==='events'));
+  assert.equal((await c.run('db.users.createIndex({email:1})')).value,'email_1');assert.equal((await c.run('db.users.indexes()')).value.length,2);
+  await assert.rejects(c.run('use other'),/only to database/);await assert.rejects(c.run('db.runCommand({ping:1})'),/does not expose/);
+  const child=spawn(process.execPath,['bin/bsonlite.cjs','--eval','db.users.countDocuments({})'],{cwd:require('node:path').join(__dirname,'..'),env:{...process.env,BSONLITE_URI:bridge.url},stdio:['ignore','pipe','pipe']});let out='',err='';child.stdout.on('data',x=>out+=x);child.stderr.on('data',x=>err+=x);const [code]=await once(child,'exit');assert.equal(code,0,err);assert.equal(fromJSON(out),61);
+});
+test('bridge authentication rejects missing tokens, browser origins and unauthorized writes',async t=>{
+  const bridge=await startBridge(fakeDatabase());t.after(()=>bridge.close());const u=new URL(bridge.url),base='http://'+u.host;
+  assert.equal((await fetch(base+'/info')).status,401);assert.equal((await fetch(base+'/info',{headers:{Authorization:'Bearer '+u.hash.slice(1),Origin:'https://example.test'}})).status,401);
+  const response=await fetch(base+'/execute',{method:'POST',headers:{Authorization:'Bearer '+u.hash.slice(1)},body:json(plan('db.users.insertOne({x:1})'))});assert.equal(response.status,400);assert.match((await response.json()).error,/Read-only/);
+});
+test('read-only client policy cannot be bypassed by a write-enabled bridge',async t=>{const bridge=await startBridge(fakeDatabase(),{allowWrites:true}),c=new Connection();t.after(async()=>{await c.disconnect();await bridge.close();});await c.connect({uri:bridge.url});await assert.rejects(c.run('db.users.insertOne({x:1})'),/Read-only/);assert.equal((await c.run('db.users.countDocuments({})')).value,61);});
+test('failed reconnect keeps the existing connection usable',async t=>{const bridge=await startBridge(fakeDatabase()),c=new Connection();t.after(async()=>{await c.disconnect();await bridge.close();});await c.connect({uri:bridge.url});await assert.rejects(c.connect({uri:'not-a-url'}),/Use a/);assert.equal((await c.run('db.users.countDocuments({})')).value,61);});
+test('direct URI TLS certificate bypasses are rejected',async()=>{for(const flag of ['tlsInsecure','tlsAllowInvalidCertificates','tlsAllowInvalidHostnames']){const c=new Connection();await assert.rejects(c.connect({uri:'mongodb://localhost/demo?'+flag+'=true'}),/cannot be bypassed/);}});
