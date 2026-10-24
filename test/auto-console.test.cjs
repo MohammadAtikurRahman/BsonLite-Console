@@ -32,3 +32,28 @@ test('SDK console:false keeps existing connect code working without a local endp
 test('stop waits for automatic setup and leaves no discovered session behind',async t=>{const directory=await registry(t),sdk=enhanceSDK(fakeSDK(),{directory});const pending=sdk.connect();const stopping=sdk.stop();await assert.rejects(sdk.connect(),/Wait for/);await pending;await stopping;assert.deepEqual(await fs.readdir(directory),[]);assert.equal(sdk.status().connected,false);});
 test('terminal CLI discovers a running SDK without a URL or helper argument',async t=>{const directory=await registry(t),sdk=enhanceSDK(fakeSDK(),{directory});t.after(()=>sdk.stop());await sdk.connect();const child=spawn(process.execPath,['bin/bsonlite.cjs','--eval','db.users.countDocuments({})'],{cwd:path.join(__dirname,'..'),env:{...process.env,BSONLITE_CONSOLE_HOME:directory,BSONLITE_URI:''},stdio:['ignore','pipe','pipe']});let stdout='',stderr='';child.stdout.on('data',x=>stdout+=x);child.stderr.on('data',x=>stderr+=x);const [code]=await once(child,'exit');assert.equal(code,0,stderr);assert.equal(require('../src/query.cjs').fromJSON(stdout),61);});
 test('repeated calls preserve explicit Console opt-out and reject conflicting security options',async t=>{const directory=await registry(t),sdk=enhanceSDK(fakeSDK(),{directory});t.after(()=>sdk.stop());const db=await sdk.connect({console:false});assert.equal((await sdk.connect()).connectionURL,null);assert.equal(db.connectionURL,null);await assert.rejects(sdk.connect({console:true}),/Stop the database/);assert.deepEqual(await fs.readdir(directory),[]);});
+
+function deferredCore(){
+  const database=new Database('shared');let resolve,reject;
+  let request=new Promise((yes,no)=>{resolve=yes;reject=no;});
+  const core={...fakeSDK(),connect(){return request;},async stop(){await database.close();}};
+  return{database,core,resolve:()=>resolve(database),reject,errorRetry(){request=Promise.resolve(database);}};
+}
+test('the SDK wrapper preserves an identical shared core startup promise',async t=>{
+  const state=deferredCore(),sdk=enhanceSDK(state.core);t.after(()=>sdk.stop());
+  const first=sdk.start({console:false}),again=sdk.connect();
+  assert.equal(first,again);state.resolve();
+  const db=await first;assert.equal(await again,db);assert.equal(db.connectionURL,null);
+});
+test('a shared pending startup still rejects conflicting Console access', {timeout:2000},async t=>{
+  const state=deferredCore(),sdk=enhanceSDK(state.core);t.after(()=>sdk.stop());
+  const first=sdk.start({console:false});
+  await assert.rejects(sdk.start({console:true}),error=>error.code==='BSONLITE_CONFIG_CONFLICT');
+  assert.equal(sdk.start({console:false}),first);state.resolve();await first;
+});
+test('a failed shared startup rejects all callers and allows a fresh request',async t=>{
+  const state=deferredCore(),sdk=enhanceSDK(state.core);t.after(()=>sdk.stop());
+  const first=sdk.start({console:false}),again=sdk.start();assert.equal(first,again);
+  const failed=assert.rejects(first,/fixture startup failed/);state.reject(new Error('fixture startup failed'));await failed;
+  state.errorRetry();const retry=sdk.start({console:false});assert.notEqual(retry,first);await retry;
+});

@@ -30,7 +30,7 @@ async function startAutoConsole(database,{directory=discoveryDirectory(),protect
 }
 function enhanceSDK(core,settings={}){
   if(core.consoleVersion)return core;
-  const entries=new WeakMap(),starting=new Set();let shared=null,stopping=null;
+  const entries=new WeakMap(),startCalls=new WeakMap(),starting=new Set();let shared=null,stopping=null;
   function inputOptions(input){if(input&&typeof input==='object'&&Object.hasOwn(input,'console')){if(typeof input.console!=='boolean')throw new core.BsonLiteError('BSONLITE_INVALID_OPTIONS','console must be true or false.');const copy={...input};delete copy.console;return copy;}return input;}
   function enabled(input){if(process.env.BSONLITE_CONSOLE==='0')return false;return input&&typeof input==='object'&&Object.hasOwn(input,'console')?input.console:undefined;}
   async function attach(database,wanted){
@@ -48,8 +48,17 @@ function enhanceSDK(core,settings={}){
   }
   function start(input){
     if(stopping)return Promise.reject(new core.BsonLiteError('BSONLITE_STOPPING','Wait for BsonLite.stop() before starting again.'));
-    const pending=(async()=>{const db=await core.connect(inputOptions(input));const record=await attach(db,enabled(input));shared=record;return record.proxy;})();
-    starting.add(pending);return pending.finally(()=>starting.delete(pending));
+    let base,wanted;
+    try{base=Promise.resolve(core.connect(inputOptions(input)));wanted=enabled(input);}catch(error){return Promise.reject(error);}
+    const existing=startCalls.get(base);
+    if(existing){
+      if(wanted!==undefined&&wanted!==existing.wanted)return Promise.reject(new core.BsonLiteError('BSONLITE_CONFIG_CONFLICT','Stop the database before changing automatic Console access.'));
+      return existing.promise;
+    }
+    const pending=base.then(async db=>{const record=await attach(db,wanted);shared=record;return record.proxy;});
+    starting.add(pending);
+    const promise=pending.finally(()=>starting.delete(pending));
+    startCalls.set(base,{wanted:wanted!==false,promise});return promise;
   }
   async function open(input){return(await attach(await core.open(inputOptions(input)),enabled(input))).proxy;}
   function stop(){if(stopping)return stopping;stopping=(async()=>{await Promise.allSettled([...starting]);try{if(shared)await shared.closeLink();}finally{await core.stop();shared=null;}})().finally(()=>{stopping=null;});return stopping;}
