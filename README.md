@@ -19,7 +19,7 @@ The desktop app is portable: extract it and run the `.exe`; it does not need a s
 Use the updated SDK supplied with this release once:
 
 - Single-file apps: replace your previous `BsonLite.cjs` with the supplied file. Keep your existing `require` and `BsonLite.connect(...)` code.
-- npm apps: install the supplied `bsonlite-sdk-0.6.0-rc.3.tgz` from your app folder. The prepared npm package must be published separately before a registry install can fetch it.
+- npm apps: run `npm install bsonlite-sdk` in your app folder. The published `0.6.0-rc.3` package includes automatic Console discovery. The supplied `.tgz` is also available for an offline update.
 
 Restart your application, leave it running, and open `BsonLite-Console-0.2.0-Windows-x64.exe`. The database appears in **Running BsonLite databases**, its URL is filled in, and **Connect** opens it. Choose another item from the dropdown when multiple apps are running.
 
@@ -38,6 +38,14 @@ Only running apps under the same OS account are discovered. Multiple apps/databa
 Automatic records contain a local access token, not the engine password or TLS private key. Windows ACLs restrict the registry to the current account and SYSTEM; POSIX directories/files use 0700/0600. No URL/token is automatically printed or committed. Anyone allowed to use that OS account can connect to its published local sessions. Disable automatic Console access with `BSONLITE_CONSOLE=0` or `BsonLite.connect({ ...existingOptions, console: false })`.
 
 The SDK endpoint permits ordinary collection writes; the viewer starts read-only and requires the user to enable writes. Unsupported engine-version features remain unsupported. There is no empty fake default database or automatic opening of stopped data files.
+
+The experimental modern SDK uses the same app-link protocol, so the connection
+steps stay the same. Its BSON 7 driver interoperates with this Console's BSON 6
+client through the typed Extended JSON bridge. Source interoperability tests
+pass; the full rebuilt 9.0.4 engine still has its own required Windows runtime
+gate. Preserve existing data and follow the [engine upgrade guide](https://github.com/MohammadAtikurRahman/BsonLite/blob/main/native/modern/UPGRADE_BN.md)
+before changing an app's engine. Console does not migrate or open stopped
+database files itself.
 
 ## Nothing appears?
 

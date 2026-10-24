@@ -4,13 +4,20 @@
 
 **Single-file app:** তোমার আগের `BsonLite.cjs` file-এর জায়গায় দেওয়া নতুন file বসাবে। আগের `require(...)`, database name/directory এবং `BsonLite.connect(...)` code একই থাকবে। আলাদা helper install বা নতুন connection code লাগবে না।
 
-**npm app:** existing app-এর terminal-এ দেওয়া package-এর সঠিক path দিয়ে একবার:
+**npm app:** নিজের app-এর terminal-এ একবার:
+
+```powershell
+npm install bsonlite-sdk
+```
+
+প্রকাশিত `0.6.0-rc.3` package-এ automatic Console connection আছে। Offline file
+থেকে install করতে চাইলে দেওয়া package-এর সঠিক path ব্যবহার করতে পারো:
 
 ```powershell
 npm install "F:\Downloads\BsonLite-Easy-Connect\SDK\bsonlite-sdk-0.6.0-rc.3.tgz"
 ```
 
-নিজের extract করা location অনুযায়ী path বদলাবে। এটি SDK update; আলাদা helper নয়। নতুন npm version এখনো registry-তে publish করা হয়নি, তাই এই file থেকে install করবে।
+নিজের extract করা location অনুযায়ী path বদলাবে। এটি SDK update; আলাদা helper নয়।
 
 ## এরপর প্রতিবার
 
@@ -24,4 +31,9 @@ Documents, filter/sort, JSON view, indexes এবং query console আগের 
 
 CLI ব্যবহার করলে একটি database চললে সেটি নিজে পাবে, একাধিক থাকলে list থেকে number বেছে নেবে।
 
-আগের standalone native SDK/engine-এর bytes অক্ষত রেখে Console feature যোগ হয়েছে। Native Windows SDK-এর সঙ্গে নতুন flow Windows-এ চালিয়ে পরীক্ষা এখনও বাকি; এখানে automated discovery, SDK API এবং Electron workflow পরীক্ষা করা হচ্ছে। বিস্তারিত VALIDATION.md-এ থাকবে।
+প্রকাশিত SDK-এর native Windows engine দিয়ে automatic discovery, CLI, typed
+query, read/write control ও shutdown পরীক্ষা পাস করেছে। Console-এর Windows
+test ও portable build-ও পাস করেছে। নতুন 9.0 engine-এর পরীক্ষা আলাদাভাবে চলছে;
+শুধু Console update করলে database engine বদলায় না। নতুন engine ব্যবহার করতে
+চাইলে আগে [upgrade নির্দেশনা](https://github.com/MohammadAtikurRahman/BsonLite/blob/main/native/modern/UPGRADE_BN.md)
+অনুসরণ করবে। বিস্তারিত [VALIDATION.md](VALIDATION.md)-এ আছে।
