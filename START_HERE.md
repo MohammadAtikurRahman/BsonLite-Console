@@ -2,9 +2,13 @@
 
 Download the desktop software from the [BsonLite Console page](https://bsonlite.com/console.html), or build it using [BUILDING.md](BUILDING.md).
 
+For Console 0.3.0, run `BsonLite-Console-Setup-0.3.0-Windows-x64.exe` once. Open **BsonLite Console** from its desktop icon or the Start Menu afterwards. Setup includes the desktop runtime. To uninstall, choose **BsonLite Console** in Windows Settings → Apps or Control Panel → Programs and Features.
+
 Start an application using the integrated BsonLite SDK and `await BsonLite.connect()`. Open Console, select the discovered application and click Connect. With several running apps, choose the one you want. The SDK does not open the GUI itself.
 
 You can also enter a `bsonlite://`, `mongodb://` or `mongodb+srv://` connection URL. Treat credentials and generated bearer-token URLs as private. Direct mutual-TLS connections need the matching CA and client certificate options.
+
+The URL field is always visible. Its Copy button copies the current URL; **Ctrl K** focuses the field. There is no Show/Hide switch. Saved connections are encrypted using supported OS credential storage.
 
 The viewer starts read-only. Enable writes explicitly before creating collections or changing data. Supported queries include CRUD, indexes and aggregation; the tool is not an unrestricted JavaScript interpreter.
 

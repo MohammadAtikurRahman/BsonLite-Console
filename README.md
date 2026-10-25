@@ -1,27 +1,33 @@
-# BsonLite Console 0.2.0
+# BsonLite Console 0.3.0
 
 An Electron database workspace and terminal CLI. **Start your BsonLite app, open Console, and click Connect.**
 
-[Windows downloads](https://github.com/MohammadAtikurRahman/BsonLite-Console/releases/tag/v0.2.0) · [Website](https://bsonlite.com/console.html) · [Getting started](START_HERE.md) · [Build guide](BUILDING.md) · [Discord](https://discord.gg/vSRMRPYqs)
+[Desktop downloads](https://bsonlite.com/console.html) · [Getting started](START_HERE.md) · [Build guide](BUILDING.md) · [Discord](https://discord.gg/vSRMRPYqs)
 
 ## Choose a download
 
 | Download | Includes |
 | --- | --- |
 | `BsonLite.cjs` | Single-file SDK with automatic Console discovery; your app supplies Node.js. |
-| `BsonLite-Easy-Connect-0.2.0.zip` | Updated SDK, Windows Console, terminal CLI tarball, offline npm SDK update, source and guides. |
-| `BsonLite-Console-0.2.0-Windows-x64.zip` | Windows Console and terminal CLI tarball; use with an updated SDK app or your own URL. |
+| `BsonLite-Console-Setup-0.3.0-Windows-x64.exe` | Single offline Windows installer with Electron included, desktop and Start Menu shortcuts, and a Control Panel uninstall entry. |
+| `bsonlite-sdk` / `bsonlite-sdk@next` | The separately published Node.js SDK; `next` selects the experimental modern engine. |
 
-The desktop app is portable: extract it and run the `.exe`; it does not need a separate Node.js install. The native SDK still requires its supported Windows x64 environment. The terminal requires Node.js 20.19+. See [validation](VALIDATION.md) for the release-candidate build's test coverage.
+Build the installer from this checkout or download it once the maintainer uploads the new version to the website. Double-click the setup file: it installs for your Windows account, creates **BsonLite Console** on the desktop and in Start, then opens it. No separate Node.js installation, external archive or online setup downloader is needed to use the installed GUI. Subsequent launches use either shortcut; launching again brings the existing window forward.
+
+To remove the software, use **Settings → Apps → Installed apps → BsonLite Console → Uninstall**, or **Control Panel → Programs and Features**. Reinstall repairs a missing desktop shortcut. Saved connections are retained across reinstall/uninstall; application databases remain owned by their SDK apps.
+
+The native SDK still requires its supported Windows x64 environment. The separate terminal CLI requires Node.js 20.19+. See [validation](VALIDATION.md) for actual test coverage.
 
 ## First-time update
 
 Use the updated SDK supplied with this release once:
 
 - Single-file apps: replace your previous `BsonLite.cjs` with the supplied file. Keep your existing `require` and `BsonLite.connect(...)` code.
-- npm apps: run `npm install bsonlite-sdk` in your app folder. The published `0.6.0-rc.3` package includes automatic Console discovery. The supplied `.tgz` is also available for an offline update.
+- npm apps: use `npm install bsonlite-sdk` for the registry's default tag, or `npm install bsonlite-sdk@next` after the maintainer publishes the experimental modern SDK. The SDK package and this Console installer are separate releases.
 
-Restart your application, leave it running, and open `BsonLite-Console-0.2.0-Windows-x64.exe`. The database appears in **Running BsonLite databases**, its URL is filled in, and **Connect** opens it. Choose another item from the dropdown when multiple apps are running.
+Restart your application, leave it running, and open **BsonLite Console** from the desktop or Start. The database appears in **Running BsonLite databases**, its URL is filled in, and **Connect** opens it. Choose another item from the dropdown when multiple apps are running.
+
+The connection URL is always visible. There is no Show/Hide toggle. Use the adjacent **Copy connection URL** button to copy it, or **Ctrl K** to focus the field. Saved profiles keep using encrypted OS storage; making the field visible does not change storage or error redaction.
 
 No separate bridge/helper installation, startup code change, project-folder picker or copied token is needed. Existing direct server URLs and older manually created app links still work.
 
@@ -41,9 +47,9 @@ The SDK endpoint permits ordinary collection writes; the viewer starts read-only
 
 The experimental modern SDK uses the same app-link protocol, so the connection
 steps stay the same. Its BSON 7 driver interoperates with this Console's BSON 6
-client through the typed Extended JSON bridge. Source interoperability tests
-pass; the full rebuilt 9.0.4 engine still has its own required Windows runtime
-gate. Preserve existing data and follow the [engine upgrade guide](https://github.com/MohammadAtikurRahman/BsonLite/blob/main/native/modern/UPGRADE.md)
+client through the typed Extended JSON bridge. Native engine validation is
+recorded separately in the [core workflow](https://github.com/MohammadAtikurRahman/BsonLite/actions/workflows/modern-engine.yml).
+Preserve existing data and follow the [engine upgrade guide](https://github.com/MohammadAtikurRahman/BsonLite/blob/main/native/modern/UPGRADE.md)
 before changing an app's engine. Console does not migrate or open stopped
 database files itself.
 
@@ -55,7 +61,7 @@ Advanced: both processes can use the same absolute `BSONLITE_CONSOLE_HOME` overr
 
 ## Direct server connections
 
-Paste a standard `mongodb://…` or `mongodb+srv://…` URI. The underlying driver is pinned to 6.16.0 to match the current BsonLite engine generation. Database features still depend on the actual server and the user's permissions.
+Paste a standard `mongodb://…` or `mongodb+srv://…` URI. The direct-connection driver remains pinned to 6.16.0 for existing connections. BsonLite SDK apps use their discovered `bsonlite://…` links, including the modern SDK. Database features depend on the actual server, driver support and the user's permissions.
 
 The engine uses the MongoDB query protocol; BsonLite is an independent project. A shared query language does not mean that every server-version feature is available in every BsonLite database.
 
@@ -113,10 +119,10 @@ npm ci
 npm run cli
 ```
 
-To install the command globally from the supplied tarball:
+To install the command globally from a locally packed tarball:
 
 ```powershell
-npm install -g ".\packages\bsonlite-cli-0.2.0.tgz"
+npm install -g ".\bsonlite-cli-0.3.0.tgz"
 bsonlite
 ```
 
@@ -132,7 +138,7 @@ bsonlite --help
 
 The terminal starts read-only unless `--write` is supplied. Enter `exit` to disconnect. Node.js 20.19+ is required for the CLI or source development; Node.js 24 is recommended for development.
 
-The CLI tarball is supplied in the release ZIPs. This project does not claim that `bsonlite-cli` has been published on npm. From a source checkout you can also use `npm install -g . --omit=dev`.
+Create a CLI tarball with `npm pack --ignore-scripts`, or install from the checkout with `npm install -g . --omit=dev`. This project does not claim that `bsonlite-cli` has been published on npm. The desktop installer already includes its own query console; terminal CLI installation is optional.
 
 ## Develop and build
 
@@ -143,9 +149,9 @@ npm start
 npm run build:win
 ```
 
-The Windows portable executable is written to `release/`. Electron uses a local, sandboxed renderer with context isolation and a narrow IPC interface; database connections stay in the main process. Remote pages, renderer Node integration and navigation are disabled.
+The single Windows setup executable is written to `release/BsonLite-Console-Setup-0.3.0-Windows-x64.exe`. Distribute that `.exe` alone; the build output's unpacked directory is for development. Electron uses a local, sandboxed renderer with context isolation and a narrow IPC interface; database connections stay in the main process. Remote pages, renderer Node integration and navigation are disabled.
 
-For UI checks, install Playwright (`npm install --no-save playwright@1.62.1`) and run `npm run test:ui` on a desktop or a configured virtual display. Root-only Linux test containers can set `BSONLITE_TEST_NO_SANDBOX=1` for that test launch; this flag is not part of the production app.
+For UI checks, run `npm run test:ui` after `npm ci` on a desktop or a configured virtual display. Playwright is pinned in the lockfile and launches Electron directly, so no browser download is required. Root-only Linux test containers can set `BSONLITE_TEST_NO_SANDBOX=1` for that test launch; this flag is not part of the production app.
 
 Real-driver integration tests are opt-in with `BSONLITE_TEST_MONGOD` pointing to a test `mongod` binary. They create disposable temporary databases and certificates, not your application data. See `VALIDATION.md` for what was actually checked.
 

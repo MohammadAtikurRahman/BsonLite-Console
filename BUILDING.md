@@ -14,13 +14,19 @@ npm test
 npm start
 ```
 
-Build a portable Windows x64 app:
+Build the single offline Windows x64 setup installer:
 
 ```powershell
 npm run build:win
 ```
 
-Output: `release/BsonLite-Console-0.2.0-Windows-x64.exe`. Filenames follow the version in `package.json`. The first build downloads Electron and packaging tools. The current executable is unsigned; signing requires the maintainer's own signing setup.
+Output: `release/BsonLite-Console-Setup-0.3.0-Windows-x64.exe`. Filenames follow the version in `package.json`. Upload/distribute just this `.exe`. The first build downloads Electron and packaging tools; the finished setup embeds the GUI and all its runtime files, so users do not need Node.js or an internet download during installation.
+
+Setup installs for the current Windows account without elevation. It creates desktop and Start Menu shortcuts named **BsonLite Console**, repairs a missing desktop shortcut on reinstall and registers **BsonLite Console** in Settings/Control Panel for uninstall. The application, shortcuts, installer and uninstaller use the included multi-size icon. The application opens after an interactive install. Repeated launches focus the existing window.
+
+Existing connection profiles keep the previous `bsonlite-cli` application-data identity. Reinstall and ordinary uninstall retain that data. The installer does not bundle an SDK engine, register database services or manage the owning application's database folders.
+
+The current executable is unsigned; signing requires the maintainer's own signing setup. `signExecutable: false` leaves icon and Windows product metadata editing enabled. Do not disable `signAndEditExecutable`, which would also remove those branding edits.
 
 `npm run build:dir` creates an unpacked app for the current host. Windows x64 is the distributed target. Development on other operating systems does not make the native Windows SDK cross-platform.
 
@@ -38,7 +44,7 @@ Create a tarball without publishing:
 
 ```powershell
 npm pack --ignore-scripts --pack-destination .
-npm install -g .\bsonlite-cli-0.2.0.tgz
+npm install -g .\bsonlite-cli-0.3.0.tgz
 bsonlite
 ```
 
@@ -56,15 +62,16 @@ npm test
 For actual Electron UI checks on a desktop session:
 
 ```powershell
-npm install --no-save --package-lock=false playwright@1.62.1
 npm run test:ui
 ```
 
-The test launches Electron, so a Playwright browser download is unnecessary. Headless Linux needs a virtual display. `BSONLITE_TEST_NO_SANDBOX=1` is a root-container test flag; production enables renderer sandboxing.
+Playwright is installed by `npm ci`. The test launches Electron, so a browser download is unnecessary. Headless Linux needs a virtual display. `BSONLITE_TEST_NO_SANDBOX=1` is a root-container test flag; production enables renderer sandboxing. Tests use temporary profiles and a synthetic bridge database.
 
-## Reproduce the SDK Console adapter
+CI also runs `npm run test:installer` on a disposable Windows runner. It installs the real setup into a path containing spaces, verifies shortcut targets/icons, product metadata and the uninstall registration, reinstalls to repair a removed desktop icon, runs the same UI workflow against the **installed** executable, then uninstalls and checks cleanup while retaining a user-data marker. This lifecycle script refuses to run on an ordinary desktop to avoid changing a maintainer's installed copy.
 
-`src/sdk/auto-console.cjs` is the maintainable adapter source. The build bundles it and appends it to the exact native SDK baseline without recompiling/replacing the engine.
+## Optional: reproduce the earlier SDK Console adapter
+
+`src/sdk/auto-console.cjs` is the maintainable adapter source. This historical reproduction path bundles it and appends it to the exact earlier native SDK baseline without recompiling/replacing the engine. It is not needed to build the Console installer or to connect an already updated SDK. Modern SDK distributions are built and verified in the core/SDK repositories.
 
 ```powershell
 New-Item -ItemType Directory -Force vendor | Out-Null
@@ -79,12 +86,12 @@ Keep original SDK notices and the matching modified native engine source availab
 
 ## Automatic Windows builds
 
-`.github/workflows/build.yml` tests and builds on main pushes, pull requests and manual runs. Download `BsonLite-Console-Windows-x64` from a successful run's Artifacts section. CI does not publish to npm or create public releases automatically.
+`.github/workflows/build.yml` tests, builds and checks the installer on main pushes, pull requests and manual runs. Download `BsonLite-Console-Windows-x64` from a successful run's Artifacts section if you want CI's setup file. UI screenshots are retained separately. GitHub packages workflow artifacts in a ZIP; that is not the end-user format, and you can build the setup directly using the command above. CI does not publish to npm or create public releases automatically.
 
 ## Maintainer release
 
 1. Update `package.json` and the lockfile together. Run checks plus the Windows smoke test in `VALIDATION.md`.
 2. Build the Windows executable and CLI tarball. Keep versioned asset names and the website manifest in sync.
-3. Package Console-only and SDK+Console ZIPs, first-run guides, source/notices and SHA-256 checksums. Tag the matching source.
-4. Upload assets to GitHub Releases and verify public download URLs/hashes before updating the website.
+3. Tag the matching source and record the setup file's SHA-256 checksum. The single-file SDK and npm SDK stay separate distributions.
+4. Upload the setup `.exe` to the website or a suitable release host and verify the public URL/hash. Keep component notices inside the installed application.
 5. Publish an npm SDK update separately when ready. A supplied offline tarball does not imply that version is on the registry.
