@@ -2,7 +2,7 @@ name: Test and build Windows Console
 
 on:
   push:
-    branches: [main]
+    branches: [main, fix/console-installer]
   pull_request:
   workflow_dispatch:
 
@@ -21,10 +21,19 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: npm run test:ui
       - run: npm run build:win
+      - run: npm run test:installer
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: BsonLite-Console-Windows-x64
-          path: release/BsonLite-Console-*-Windows-x64.exe
+          path: release/BsonLite-Console-Setup-*-Windows-x64.exe
           if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: BsonLite-Console-UI-checks
+          path: test-output/
+          if-no-files-found: ignore
           retention-days: 14

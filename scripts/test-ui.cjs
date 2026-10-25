@@ -7,6 +7,8 @@ const {_electron:electron}=require('playwright');
 const {enhanceSDK}=require('../src/sdk/auto-console.cjs');
 const {BSON,ObjectId}=require('mongodb');
 const {fakeDatabase}=require('../test/fake-database.cjs');
+const {spawn}=require('node:child_process');
+const {once}=require('node:events');
 async function main(){
   const registry=await fs.mkdtemp(path.join(os.tmpdir(),'bsonlite-ui-registry-'));
   const priorHome=process.env.BSONLITE_CONSOLE_HOME;process.env.BSONLITE_CONSOLE_HOME=registry;
@@ -15,13 +17,32 @@ async function main(){
   const userData=await fs.mkdtemp(path.join(os.tmpdir(),'bsonlite-ui-test-'));
   let app;const errors=[];
   try{
-    app=await electron.launch({executablePath:require('electron'),args:[...(process.env.BSONLITE_TEST_NO_SANDBOX==='1'?['--no-sandbox']:[]),'--disable-gpu','--user-data-dir='+userData,path.join(__dirname,'..')],timeout:45000});
+    const packaged=process.env.BSONLITE_TEST_APP;
+    const executablePath=packaged||require('electron');
+    const launchArgs=[...(process.env.BSONLITE_TEST_NO_SANDBOX==='1'?['--no-sandbox']:[]),'--disable-gpu','--user-data-dir='+userData,...(packaged?[]:[path.join(__dirname,'..')])];
+    app=await electron.launch({executablePath,args:launchArgs,timeout:45000});
     const page=await app.firstWindow();page.on('pageerror',e=>errors.push(e.message));await page.waitForSelector('#connect');
     await fs.mkdir(path.join(__dirname,'../test-output'),{recursive:true});
     await page.screenshot({path:path.join(__dirname,'../test-output/welcome.png')});
     assert.equal(await page.evaluate(()=>typeof window.require),'undefined');assert.equal(await page.evaluate(()=>typeof window.process),'undefined');
+    assert.equal(await page.title(),'BsonLite Console');
+    await page.waitForFunction(()=>document.getElementById('appVersion').textContent.length>1);
+    assert.equal(await page.locator('#appVersion').textContent(),'v'+require('../package.json').version);
+    assert.equal(await page.locator('#uri').getAttribute('type'),'text');
+    assert.equal(await page.locator('#reveal').count(),0);
     await page.waitForFunction(()=>document.getElementById('uri').value.startsWith('bsonlite://')&&document.getElementById('localConnections').selectedIndex>0);
     assert.equal(await page.locator('#uri').inputValue(),sdk.connectionURL);
+    await page.locator('#copyURL').click();
+    await page.waitForFunction(()=>!document.body.classList.contains('busy'));
+    assert.equal(await app.evaluate(({clipboard})=>clipboard.readText()),sdk.connectionURL);
+    await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].minimize());
+    const secondEnv={...process.env};delete secondEnv.ELECTRON_RUN_AS_NODE;
+    const second=spawn(executablePath,launchArgs,{stdio:'ignore',env:secondEnv});
+    const timer=setTimeout(()=>second.kill(),15000);
+    try{const [code]=await once(second,'exit');assert.equal(code,0,'A second launch exits after focusing the existing window.');}finally{clearTimeout(timer);}
+    await page.waitForFunction(()=>document.visibilityState==='visible');
+    assert.equal(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().length),1);
+    assert.equal(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMinimized()),false);
     await page.locator('#connect').click();
     await page.waitForFunction(()=>document.getElementById('collectionTitle').textContent==='orders'&&!document.body.classList.contains('busy'));
     await page.getByRole('button',{name:'users',exact:true}).click();
@@ -54,10 +75,19 @@ async function main(){
     await page.locator('#jsonView').click();assert.match(await page.locator('#dataArea').textContent(),/\$oid/);
     await page.locator('#createCollection').click();await page.waitForSelector('#promptDialog[open]');await page.locator('#promptInput').fill('audit');await page.locator('#promptForm button[type="submit"]').click();await page.waitForFunction(()=>document.getElementById('collectionTitle').textContent==='audit'&&!document.body.classList.contains('busy'));
     assert.match(await page.locator('#dataArea').textContent(),/No documents found/);
+    const canSave=(await page.evaluate(()=>window.bsonlite.request('profiles'))).value.canSave;
+    if(canSave){
+      await page.locator('#saveConnection').click();await page.waitForSelector('#promptDialog[open]');await page.locator('#promptInput').fill('Console test');await page.locator('#promptForm button[type="submit"]').click();await page.waitForFunction(()=>!document.body.classList.contains('busy'));
+      const saved=await fs.readFile(path.join(userData,'connections.json'),'utf8');assert(!saved.includes(sdk.connectionURL));assert(!saved.includes(sdk.connectionURL.split('#')[1]));
+      await page.locator('#disconnect').click();await page.waitForFunction(()=>!document.body.classList.contains('busy'));
+      await page.locator('#savedConnections').getByRole('button',{name:'Console test',exact:true}).click();await page.waitForFunction(()=>document.getElementById('welcome').hidden&&!document.body.classList.contains('busy'));
+      assert.equal(await page.locator('#uri').getAttribute('type'),'text');assert.equal(await page.locator('#uri').inputValue(),sdk.connectionURL);
+      await page.getByRole('button',{name:'Remove Console test',exact:true}).click();await page.waitForFunction(()=>!document.body.classList.contains('busy'));assert.equal(JSON.parse(await fs.readFile(path.join(userData,'connections.json'),'utf8')).length,0);
+    }
     await page.setViewportSize({width:1024,height:720});
     assert.equal(await page.evaluate(()=>document.body.scrollWidth>innerWidth),false);
     await page.locator('#disconnect').click();await page.waitForFunction(()=>!document.getElementById('welcome').hidden&&!document.body.classList.contains('busy'));
-    assert.deepEqual(errors,[]);console.log('Electron UI passed: renderer Node isolation, automatic SDK discovery and prefilled URL (no helper or pasted URL), explorer, pagination, filter, read-only, insert/edit/delete, query results/errors, export, indexes, JSON view, collection creation, minimum window layout and disconnect.');
+    assert.deepEqual(errors,[]);console.log('Electron UI passed'+(packaged?' (installed app)':' (source)')+': product name/version, always-visible URL and clipboard, one window on repeated launch, renderer isolation, automatic SDK discovery, explorer, pagination, filter, read-only, insert/edit/delete, query results/errors, export, indexes, JSON view, collection creation, '+(canSave?'encrypted saved-profile roundtrip, ':'')+'minimum window layout and disconnect.');
   }finally{await app?.close();await sdk.stop();if(priorHome===undefined)delete process.env.BSONLITE_CONSOLE_HOME;else process.env.BSONLITE_CONSOLE_HOME=priorHome;await fs.rm(registry,{recursive:true,force:true});await fs.rm(userData,{recursive:true,force:true});}
 }
 main().catch(e=>{console.error(e);process.exitCode=1;});

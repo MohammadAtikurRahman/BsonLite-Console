@@ -1,6 +1,6 @@
 {
   "name": "bsonlite-cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "BsonLite desktop database browser and terminal console with connection URLs",
   "author": "Md. Atikur Rahman",
   "license": "MIT",
@@ -24,7 +24,8 @@
     "cli": "node bin/bsonlite.cjs",
     "test": "node --test test/*.test.cjs",
     "test:ui": "node scripts/test-ui.cjs",
-    "build:win": "electron-builder --win portable --x64",
+    "test:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-installer.ps1",
+    "build:win": "electron-builder --win nsis --x64 --publish never",
     "build:dir": "electron-builder --dir",
     "build:sdk": "node scripts/build-sdk.cjs"
   },
@@ -38,7 +39,8 @@
   "devDependencies": {
     "electron": "44.9.1",
     "electron-builder": "26.15.3",
-    "esbuild": "0.25.5"
+    "esbuild": "0.25.5",
+    "playwright": "1.62.1"
   },
   "files": [
     "bin/",
@@ -52,6 +54,7 @@
   "build": {
     "appId": "com.bsonlite.console",
     "productName": "BsonLite Console",
+    "executableName": "BsonLite Console",
     "asar": true,
     "compression": "normal",
     "directories": {
@@ -65,14 +68,27 @@
     ],
     "win": {
       "target": [
-        "portable"
+        "nsis"
       ],
       "signExecutable": false,
       "icon": "desktop/ui/icon.ico",
-      "artifactName": "BsonLite-Console-${version}-Windows-x64.${ext}"
+      "artifactName": "BsonLite-Console-Setup-${version}-Windows-x64.${ext}"
     },
-    "portable": {
-      "requestExecutionLevel": "user"
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": false,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "BsonLite Console",
+      "uninstallDisplayName": "BsonLite Console",
+      "installerIcon": "desktop/ui/icon.ico",
+      "uninstallerIcon": "desktop/ui/icon.ico",
+      "installerHeaderIcon": "desktop/ui/icon.ico",
+      "runAfterFinish": true,
+      "differentialPackage": false,
+      "deleteAppDataOnUninstall": false,
+      "packElevateHelper": false
     }
   }
 }

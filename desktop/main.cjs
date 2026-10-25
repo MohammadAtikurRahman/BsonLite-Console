@@ -1,5 +1,5 @@
 'use strict';
-const {app,BrowserWindow,ipcMain,dialog,protocol,net,session,safeStorage}=require('electron');
+const {app,BrowserWindow,ipcMain,dialog,protocol,net,session,safeStorage,clipboard}=require('electron');
 const path=require('node:path');
 const fs=require('node:fs/promises');
 const crypto=require('node:crypto');
@@ -9,11 +9,24 @@ const {fromJSON,json}=require('../src/query.cjs');
 const {discoverConnections}=require('../src/discovery.cjs');
 protocol.registerSchemesAsPrivileged([{scheme:'bsonlite-app',privileges:{standard:true,secure:true,supportFetchAPI:true}}]);
 let window,connection=new Connection(),lastResult=null,profiles=[];
+// Keep the existing bsonlite-cli user-data identity so saved profiles survive
+// the move from the portable app to an installed BsonLite Console.
+const userDataOverride=app.commandLine.getSwitchValue('user-data-dir');
+if(userDataOverride&&path.isAbsolute(userDataOverride))app.setPath('userData',userDataOverride);
+if(process.platform==='win32')app.setAppUserModelId('com.bsonlite.console');
+const primaryInstance=app.requestSingleInstanceLock();
+if(!primaryInstance)app.quit();
+app.on('second-instance',()=>{if(window&&!window.isDestroyed()){if(window.isMinimized())window.restore();window.show();window.focus();}});
 const profileFile=()=>path.join(app.getPath('userData'),'connections.json');
 function secureStorage(){return safeStorage.isEncryptionAvailable()&&(process.platform!=='linux'||safeStorage.getSelectedStorageBackend()!=='basic_text');}
 async function saveProfiles(){await fs.writeFile(profileFile(),JSON.stringify(profiles),{mode:0o600});}
 async function handle(action,p={}){
   switch(action){
+    case 'appInfo':return{name:'BsonLite Console',version:app.getVersion()};
+    case 'copyURL':{
+      if(typeof p.uri!=='string'||p.uri.length>16384||!/^(bsonlite|mongodb|mongodb\+srv):\/\//.test(p.uri.trim()))throw new Error('Enter a connection URL to copy.');
+      clipboard.writeText(p.uri.trim());return true;
+    }
     case 'discover': return discoverConnections();
     case 'connect': return connection.connect(p);
     case 'disconnect': await connection.disconnect();lastResult=null;return true;
@@ -54,12 +67,13 @@ async function handle(action,p={}){
     default:throw new Error('Unknown workspace action.');
   }
 }
-app.whenReady().then(async()=>{
+if(primaryInstance)app.whenReady().then(async()=>{
   protocol.handle('bsonlite-app',request=>{const u=new URL(request.url);const file=decodeURIComponent(u.pathname.slice(1))||'index.html';if(u.host!=='workspace'||!['index.html','styles.css','renderer.js','icon.svg'].includes(file))return new Response('Not found',{status:404});return net.fetch(pathToFileURL(path.join(__dirname,'ui',file)).href);});
   try{const data=await fs.readFile(profileFile(),'utf8');if(data.length<1024*1024){const value=JSON.parse(data);if(Array.isArray(value))profiles=value.filter(x=>typeof x.id==='string'&&typeof x.name==='string'&&typeof x.encrypted==='string').slice(0,20);}}catch{}
   session.defaultSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
   session.defaultSession.setPermissionCheckHandler(()=>false);
-  window=new BrowserWindow({width:1440,height:950,minWidth:1024,minHeight:720,title:'BsonLite Console',icon:path.join(__dirname,'ui','icon.png'),backgroundColor:'#10141e',autoHideMenuBar:true,webPreferences:{preload:path.join(__dirname,'preload.cjs'),nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true}});
+  window=new BrowserWindow({width:1440,height:950,minWidth:1024,minHeight:720,title:'BsonLite Console',icon:path.join(__dirname,'ui',process.platform==='win32'?'icon.ico':'icon.png'),backgroundColor:'#10141e',autoHideMenuBar:true,webPreferences:{preload:path.join(__dirname,'preload.cjs'),nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true}});
+  window.on('page-title-updated',event=>event.preventDefault());
   window.webContents.setWindowOpenHandler(()=>({action:'deny'}));
   window.webContents.on('will-navigate',event=>event.preventDefault());
   window.webContents.on('will-attach-webview',event=>event.preventDefault());
@@ -68,6 +82,6 @@ app.whenReady().then(async()=>{
     try{return{ok:true,value:await handle(action,payload)}}catch(e){return{ok:false,error:safeError(e)}}
   });
   await window.loadURL('bsonlite-app://workspace/index.html');
-});
+}).catch(error=>{dialog.showErrorBox('BsonLite Console could not start',safeError(error));app.quit();});
 app.on('window-all-closed',()=>app.quit());
 app.on('before-quit',()=>{connection.adapter?.close().catch(()=>{});});
