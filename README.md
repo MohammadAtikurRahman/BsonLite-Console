@@ -4,26 +4,34 @@ An Electron database workspace and terminal CLI. **Start your BsonLite app, open
 
 [Desktop downloads](https://bsonlite.com/console.html) · [Getting started](START_HERE.md) · [Build guide](BUILDING.md) · [Discord](https://discord.gg/vSRMRPYqs)
 
+## Product names
+
+- **BsonLite** is the database, available as `BsonLite.cjs`.
+- **`bsonlite-sdk`** is the npm package for BsonLite.
+- **BsonLite Console** is the desktop GUI and terminal CLI.
+
+[Support BsonLite](https://buymeacoffee.com/bsonlite) · [Website downloads](https://bsonlite.com/download.html)
+
 ## Choose a download
 
 | Download | Includes |
 | --- | --- |
-| `BsonLite.cjs` | Single-file SDK with automatic Console discovery; your app supplies Node.js. |
+| `BsonLite.cjs` | Single-file BsonLite with automatic Console discovery; your app supplies Node.js. |
 | `BsonLite-Console-Setup-0.3.0-Windows-x64.exe` | Single offline Windows installer with Electron included, desktop and Start Menu shortcuts, and a Control Panel uninstall entry. |
-| `bsonlite-sdk` / `bsonlite-sdk@next` | The separately published Node.js SDK; `next` selects the experimental modern engine. |
+| `bsonlite-sdk` / `bsonlite-sdk@next` | The separately published Node.js BsonLite; `next` selects the experimental modern engine. |
 
 Build the installer from this checkout or download it once the maintainer uploads the new version to the website. Double-click the setup file: it installs for your Windows account, creates **BsonLite Console** on the desktop and in Start, then opens it. No separate Node.js installation, external archive or online setup downloader is needed to use the installed GUI. Subsequent launches use either shortcut; launching again brings the existing window forward.
 
-To remove the software, use **Settings → Apps → Installed apps → BsonLite Console → Uninstall**, or **Control Panel → Programs and Features**. Reinstall repairs a missing desktop shortcut. Saved connections are retained across reinstall/uninstall; application databases remain owned by their SDK apps.
+To remove the software, use **Settings → Apps → Installed apps → BsonLite Console → Uninstall**, or **Control Panel → Programs and Features**. Reinstall repairs a missing desktop shortcut. Saved connections are retained across reinstall/uninstall; application databases remain owned by their BsonLite apps.
 
-The native SDK still requires its supported Windows x64 environment. The separate terminal CLI requires Node.js 20.19+. See [validation](VALIDATION.md) for actual test coverage.
+The native BsonLite build still requires its supported Windows x64 environment. The separate terminal CLI requires Node.js 20.19+. See [validation](VALIDATION.md) for actual test coverage.
 
 ## First-time update
 
-Use the updated SDK supplied with this release once:
+Use the updated BsonLite supplied with this release once:
 
 - Single-file apps: replace your previous `BsonLite.cjs` with the supplied file. Keep your existing `require` and `BsonLite.connect(...)` code.
-- npm apps: use `npm install bsonlite-sdk` for the registry's default tag, or `npm install bsonlite-sdk@next` after the maintainer publishes the experimental modern SDK. The SDK package and this Console installer are separate releases.
+- npm apps: use `npm install bsonlite-sdk` for the registry's default tag, or `npm install bsonlite-sdk@next` after the maintainer publishes the experimental modern BsonLite. BsonLite package and this Console installer are separate releases.
 
 Restart your application, leave it running, and open **BsonLite Console** from the desktop or Start. The database appears in **Running BsonLite databases**, its URL is filled in, and **Connect** opens it. Choose another item from the dropdown when multiple apps are running.
 
@@ -37,15 +45,15 @@ Database/collection explorer; document table/JSON views; filters, sort and pagin
 
 ## How automatic connections work
 
-The SDK automatically starts a token-protected endpoint on `127.0.0.1` after its normal database connection. It publishes a private per-user session record. Console reads that registry and verifies the live endpoint. It never scans projects or guesses database passwords. Native storage encryption, credentials, TLS, database files and the embedded native engine are unchanged.
+BsonLite automatically starts a token-protected endpoint on `127.0.0.1` after its normal database connection. It publishes a private per-user session record. Console reads that registry and verifies the live endpoint. It never scans projects or guesses database passwords. Native storage encryption, credentials, TLS, database files and the embedded native engine are unchanged.
 
 Only running apps under the same OS account are discovered. Multiple apps/database handles get separate entries. A normal close removes the entry; stale or dead entries are ignored. Closing Console leaves the owning app running. A restart produces a fresh connection which Console discovers automatically.
 
 Automatic records contain a local access token, not the engine password or TLS private key. Windows ACLs restrict the registry to the current account and SYSTEM; POSIX directories/files use 0700/0600. No URL/token is automatically printed or committed. Anyone allowed to use that OS account can connect to its published local sessions. Disable automatic Console access with `BSONLITE_CONSOLE=0` or `BsonLite.connect({ ...existingOptions, console: false })`.
 
-The SDK endpoint permits ordinary collection writes; the viewer starts read-only and requires the user to enable writes. Unsupported engine-version features remain unsupported. There is no empty fake default database or automatic opening of stopped data files.
+BsonLite endpoint permits ordinary collection writes; the viewer starts read-only and requires the user to enable writes. Unsupported engine-version features remain unsupported. There is no empty fake default database or automatic opening of stopped data files.
 
-The experimental modern SDK uses the same app-link protocol, so the connection
+The experimental modern BsonLite uses the same app-link protocol, so the connection
 steps stay the same. Its BSON 7 driver interoperates with this Console's BSON 6
 client through the typed Extended JSON bridge. Native engine validation is
 recorded separately in the [core workflow](https://github.com/MohammadAtikurRahman/BsonLite/actions/workflows/modern-engine.yml).
@@ -55,13 +63,13 @@ database files itself.
 
 ## Nothing appears?
 
-Start your app with the updated SDK and leave it running. Both apps must use the same Windows account. An older SDK cannot announce itself automatically. If Console is disabled by the application or Windows prevents the private registry from being protected, the owning database continues working and the SDK reports that automatic Console access is unavailable.
+Start your app with the updated BsonLite and leave it running. Both apps must use the same Windows account. An older BsonLite cannot announce itself automatically. If Console is disabled by the application or Windows prevents the private registry from being protected, the owning database continues working and BsonLite reports that automatic Console access is unavailable.
 
 Advanced: both processes can use the same absolute `BSONLITE_CONSOLE_HOME` override. The default is the account's application-data directory; changing `BSONLITE_DATA_HOME` for database storage does not change discovery.
 
 ## Direct server connections
 
-Paste a standard `mongodb://…` or `mongodb+srv://…` URI. The direct-connection driver remains pinned to 6.16.0 for existing connections. BsonLite SDK apps use their discovered `bsonlite://…` links, including the modern SDK. Database features depend on the actual server, driver support and the user's permissions.
+Paste a standard `mongodb://…` or `mongodb+srv://…` URI. The direct-connection driver remains pinned to 6.16.0 for existing connections. BsonLite apps use their discovered `bsonlite://…` links, including the modern BsonLite. Database features depend on the actual server, driver support and the user's permissions.
 
 The engine uses the MongoDB query protocol; BsonLite is an independent project. A shared query language does not mean that every server-version feature is available in every BsonLite database.
 
@@ -104,13 +112,13 @@ The console supports plain query objects, arrays, regular expressions and BSON c
 
 This is a database expression interpreter, not a full `mongosh` or Node.js shell. Variables, loops, functions, imports, scripts, filesystem access and server-side JavaScript are not supported. Run one expression at a time. Cursor results default to 50 documents and are capped at 1000; GUI pages show 25. Cursor BSON data is capped at 8 MB, serialized results at 20 MB, with 10-second server query timeouts.
 
-Direct connections also allow these read commands through `db.runCommand(...)`: `ping`, `dbStats`, `collStats`, `count`, `distinct`, `listCollections`, `listIndexes`, `buildInfo`, and read-only `explain` for find/count/distinct. App links expose the SDK's public collection API, so arbitrary database commands are unavailable there. `use` on an app link cannot switch beyond its exposed database.
+Direct connections also allow these read commands through `db.runCommand(...)`: `ping`, `dbStats`, `collStats`, `count`, `distinct`, `listCollections`, `listIndexes`, `buildInfo`, and read-only `explain` for find/count/distinct. App links expose BsonLite's public collection API, so arbitrary database commands are unavailable there. `use` on an app link cannot switch beyond its exposed database.
 
 Aggregation stages that write (`$out`, `$merge`) require writes enabled. The underlying engine may reject unsupported stages or options; no claim of universal command compatibility is made.
 
 ## Terminal CLI
 
-With exactly one running updated SDK app, the terminal finds it automatically. With several, choose its number. A URL is still accepted explicitly.
+With exactly one running updated BsonLite app, the terminal finds it automatically. With several, choose its number. A URL is still accepted explicitly.
 
 From the extracted source:
 
@@ -155,12 +163,12 @@ For UI checks, run `npm run test:ui` after `npm ci` on a desktop or a configured
 
 Real-driver integration tests are opt-in with `BSONLITE_TEST_MONGOD` pointing to a test `mongod` binary. They create disposable temporary databases and certificates, not your application data. See `VALIDATION.md` for what was actually checked.
 
-See [BUILDING.md](BUILDING.md) for clean builds, optional UI/integration tests, SDK adapter reproduction and release instructions. [CONTRIBUTING.md](CONTRIBUTING.md) explains how to send fixes.
+See [BUILDING.md](BUILDING.md) for clean builds, optional UI/integration tests, BsonLite adapter reproduction and release instructions. [CONTRIBUTING.md](CONTRIBUTING.md) explains how to send fixes.
 
 ## Related projects
 
-- [BsonLite](https://github.com/MohammadAtikurRahman/BsonLite): core SDK and engine integration.
-- [Bsonlite-SDK](https://github.com/MohammadAtikurRahman/Bsonlite-SDK): the `bsonlite-sdk` npm distribution.
+- [BsonLite](https://github.com/MohammadAtikurRahman/BsonLite): core BsonLite and engine integration.
+- [npm package repository](https://github.com/MohammadAtikurRahman/Bsonlite-SDK): the `bsonlite-sdk` npm distribution.
 - [Community Discord](https://discord.gg/vSRMRPYqs): questions, examples and feedback.
 
-The project's MIT license applies to this tool. Electron, Chromium, the MongoDB Node.js driver and their dependencies retain their own licenses/notices. The native BsonLite engine and SDK are not bundled with this viewer.
+The project's MIT license applies to this tool. Electron, Chromium, the MongoDB Node.js driver and their dependencies retain their own licenses/notices. The native BsonLite engine and BsonLite are not bundled with this viewer.
