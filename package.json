@@ -46,7 +46,7 @@
     "desktop/",
     "examples/",
     "README.md",
-    "START_HERE_BN.md",
+    "START_HERE.md",
     "LICENSE"
   ],
   "build": {

@@ -2,7 +2,7 @@
 
 An Electron database workspace and terminal CLI. **Start your BsonLite app, open Console, and click Connect.**
 
-[Windows downloads](https://github.com/MohammadAtikurRahman/BsonLite-Console/releases/tag/v0.2.0) · [Website](https://bsonlite.com/console.html) · [বাংলায় শুরু করুন](START_HERE_BN.md) · [Build guide](BUILDING.md) · [Discord](https://discord.gg/vSRMRPYqs)
+[Windows downloads](https://github.com/MohammadAtikurRahman/BsonLite-Console/releases/tag/v0.2.0) · [Website](https://bsonlite.com/console.html) · [Getting started](START_HERE.md) · [Build guide](BUILDING.md) · [Discord](https://discord.gg/vSRMRPYqs)
 
 ## Choose a download
 
@@ -43,7 +43,7 @@ The experimental modern SDK uses the same app-link protocol, so the connection
 steps stay the same. Its BSON 7 driver interoperates with this Console's BSON 6
 client through the typed Extended JSON bridge. Source interoperability tests
 pass; the full rebuilt 9.0.4 engine still has its own required Windows runtime
-gate. Preserve existing data and follow the [engine upgrade guide](https://github.com/MohammadAtikurRahman/BsonLite/blob/main/native/modern/UPGRADE_BN.md)
+gate. Preserve existing data and follow the [engine upgrade guide](https://github.com/MohammadAtikurRahman/BsonLite/blob/main/native/modern/UPGRADE.md)
 before changing an app's engine. Console does not migrate or open stopped
 database files itself.
 
