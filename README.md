@@ -18,7 +18,7 @@ A Windows database GUI, query console and terminal CLI for [BsonLite](https://bs
 | --- | --- |
 | `BsonLite.cjs` | Single-file BsonLite with automatic Console discovery; your app supplies Node.js. |
 | `BsonLite-Console-Setup-0.3.0-Windows-x64.exe` | Single offline Windows installer with Electron included, desktop and Start Menu shortcuts, and a Control Panel uninstall entry. |
-| `bsonlite-sdk` / `bsonlite-sdk@next` | The separately published Node.js BsonLite; `next` selects the experimental modern engine. |
+| `bsonlite-sdk` | The npm package for BsonLite. Install it in your Node.js project with `npm i bsonlite-sdk`. |
 
 Download the installer from the [official Console page](https://bsonlite.com/console.html), or build it from this checkout. Double-click the setup file: it installs for your Windows account, creates **BsonLite Console** on the desktop and in Start, then opens it. No separate Node.js installation, external archive or online setup downloader is needed to use the installed GUI. Subsequent launches use either shortcut; launching again brings the existing window forward.
 
@@ -31,7 +31,7 @@ The native BsonLite build still requires its supported Windows x64 environment. 
 Use the updated BsonLite supplied with this release once:
 
 - Single-file apps: replace your previous `BsonLite.cjs` with the supplied file. Keep your existing `require` and `BsonLite.connect(...)` code.
-- npm apps: use `npm install bsonlite-sdk` for the registry's default tag, or `npm install bsonlite-sdk@next` for the experimental modern line. Check `npm view bsonlite-sdk dist-tags --json` before an upgrade. BsonLite package and this Console installer are separate releases.
+- npm apps: run `npm i bsonlite-sdk`, then restart your application. If you already use an older BsonLite database, follow the [migration guide](https://bsonlite.com/docs/migration.html) before upgrading. The npm package and Console installer are separate downloads.
 
 Restart your application, leave it running, and open **BsonLite Console** from the desktop or Start. The database appears in **Running BsonLite databases**, its URL is filled in, and **Connect** opens it. Choose another item from the dropdown when multiple apps are running.
 
